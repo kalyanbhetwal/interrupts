@@ -28,7 +28,7 @@ const UNLOCK_KEY2: u32 = 0xCDEF_89AB;
 
 
 #[no_mangle]
-fn checkpoint(){
+fn checkpoint(lr: u32){
 
     unsafe {
         asm!(
@@ -171,12 +171,14 @@ fn checkpoint(){
         );
     }
 
+  //  r14_lr = lr;
 
     unsafe {
         asm!(
             "MOV r0, sp",
         );
     }
+    // have to be extra careful for the sp value
     unsafe {
         asm!(
             "add r0, #288",
@@ -202,7 +204,7 @@ fn checkpoint(){
         //let  start_address: u32 = 0x2000_fffc as u32;
         let mut start_address:u32;
         let  end_address = r13_sp;
-        asm!("movw r0, 0x9FF8
+        asm!("movw r0, 0xFFF8
              movt r0, 0x2000");
 
          asm!(
@@ -228,7 +230,7 @@ fn checkpoint(){
             flash_start_address.write(flash_start_address.read() + offset); 
             if flash_start_address.read() + checkpoint_size.read() >= flash_end_address.read(){
                 erase_all(&mut flash);
-               flash_start_address = Volatile::new(0x0801_0000);
+               flash_start_address = Volatile::new(0x0803_0000);
             }
         }
         asm::dmb();
@@ -343,7 +345,7 @@ fn restore()->bool{
         );
 
         //set sp to 0x0200_fffc
-        asm!("movw r1, 0x9ff8
+        asm!("movw r1, 0xfff8
         movt r1, 0x02000");
         asm!("msr msp, r1");
 
@@ -427,7 +429,7 @@ fn delete_all_pg(){
     unsafe{
         let mut dp = Peripherals::steal();
         let mut flash= &mut dp.FLASH;
-        for i in 0..100{
+        for i in 0..25{
             let page = start_address + i * 2*1024;
             unlock(& mut flash); 
             wait_ready(&flash);
@@ -439,11 +441,11 @@ fn delete_all_pg(){
 #[entry]
 fn main() -> ! {
 
-   //delete_all_pg();
-   // delete_pg(0x0803_0000 as u32); 
-
+    // delete_all_pg();
+   //delete_pg(0x0803_0000 as u32); 
     // Get the peripheral access
-    let dp = Peripherals::take().unwrap();
+    unsafe{
+    let dp = Peripherals::steal(); //take().unwrap();
 
     // Enable the clock for GPIOA and SYSCFG
     dp.RCC.ahbenr.modify(|_, w| w.iopden().set_bit());
@@ -456,16 +458,34 @@ fn main() -> ! {
     // Configure EXTI0 for falling edge trigger and enable it
     dp.EXTI.imr1.modify(|_, w| w.mr0().set_bit());
     dp.EXTI.ftsr1.modify(|_, w| w.tr0().set_bit());
-
+    }
     // Enable EXTI0 interrupt in the NVIC
     unsafe { NVIC::unmask(Interrupt::EXTI0) };
 
     // Enable interrupts globally
     unsafe { cortex_m::peripheral::NVIC::unmask(Interrupt::EXTI0) };
 
+    restore();
 
+    let a = Volatile::new(10);
+    let b = Volatile::new(20);
+    let mut d; 
+    let mut e; 
+    let mut f;
+    let mut g ;
+    let mut c;
     loop {
         // your code goes here
+        c = a.read() + b.read();
+        hprintln!("After c").unwrap();
+        d = c + a.read();
+        hprintln!("After d").unwrap();
+        e = c + d;
+        hprintln!("After e").unwrap();
+        f = e + c;
+        hprintln!("After f").unwrap();
+        g = c + f;
+        hprintln!("After g").unwrap();
     }
 
     
@@ -475,17 +495,29 @@ fn main() -> ! {
 #[interrupt]
 fn EXTI0() {
     // Clear the interrupt pending bit
+    let lr: u32;
+    unsafe {
+        asm!(
+            "mov {}, lr",
+            out(reg) lr
+        );
+    }
+    hprintln!("LR value: {:#010x}", lr).unwrap();
+
     unsafe{
         let peripherals = Peripherals::steal();
         peripherals.EXTI.pr1.modify(|_, w| w.pr0().set_bit());
     }
     hprintln!("Interrupt happened").unwrap();
-    //checkpoint();
+    checkpoint(lr);
     hprintln!("Checkpoint taken").unwrap();
-    reset_mcu();
+    let a = 10 + 2;
+    let b = a + 10;
+    //reset_mcu();
     // Your interrupt handling code here
 }
 
+#[no_mangle]
 fn reset_mcu() -> ! {
     // Perform a software reset
     hprintln!("reset mcu").unwrap();
