@@ -448,7 +448,7 @@ fn main() -> ! {
     let dp = Peripherals::steal(); //take().unwrap();
 
     // Enable the clock for GPIOA and SYSCFG
-    dp.RCC.ahbenr.modify(|_, w| w.iopden().set_bit());
+    dp.RCC.ahbenr.modify(|_, w| w.iopaen().set_bit());
     dp.RCC.apb2enr.modify(|_, w| w.syscfgen().set_bit());
 
     // Configure PA0 as input
