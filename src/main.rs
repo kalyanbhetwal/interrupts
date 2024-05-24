@@ -28,11 +28,11 @@ const UNLOCK_KEY2: u32 = 0xCDEF_89AB;
 
 
 #[no_mangle]
-fn checkpoint(lr: u32){
+fn checkpoint(){
 
     unsafe {
         asm!(
-            "add sp, #280"
+            "add sp, #272"
         );
     }
     unsafe {
@@ -47,7 +47,7 @@ fn checkpoint(lr: u32){
     }
     unsafe {
         asm!(
-            "sub sp, #280"
+            "sub sp, #272"
         );
     }
 
@@ -181,7 +181,7 @@ fn checkpoint(lr: u32){
     // have to be extra careful for the sp value
     unsafe {
         asm!(
-            "add r0, #288",
+            "add r0, #280",
         );
     }
     unsafe {
@@ -194,11 +194,11 @@ fn checkpoint(lr: u32){
     //let dp = Peripherals::take().unwrap();
 
     unsafe{
-    let dp = Peripherals::steal();
 
-    let mut flash= dp.FLASH;
-    unlock(& mut flash);
-    wait_ready(&flash);
+        let  dp = Peripherals::steal();
+        let mut flash= dp.FLASH;
+        unlock(&mut flash);
+        wait_ready(&flash);
 
    
         //let  start_address: u32 = 0x2000_fffc as u32;
@@ -269,7 +269,7 @@ fn checkpoint(lr: u32){
         asm::dmb();
     asm::dmb();
     //mark the end of the stack
-    write_to_flash(&mut flash,  (flash_start_address.read()) as u32, 0xffff_ffff as u32);
+    write_to_flash(&mut flash,  (flash_start_address.read()) as u32, 0xf1f1_f1f1 as u32);
     flash_start_address.write(flash_start_address.read() + 4);
     asm::dmb();
 
@@ -349,8 +349,8 @@ fn restore()->bool{
         movt r1, 0x02000");
         asm!("msr msp, r1");
 
-        asm!("movw r3, 0xffff
-        movt r3, 0xffff");
+        asm!("movw r3, 0xf1f1
+        movt r3, 0xf1f1");
     
         asm!("1:
             ldr r1, [r0, #4]
@@ -404,7 +404,7 @@ fn restore()->bool{
         asm!( "LDR r12, [r0]");
 
         asm!("adds r0, r0, #4");
-       // asm!( "LDR r13, [r0]"); //no need to do this
+        //asm!( "LDR r13, [r0]"); //no need to do this
 
         asm!("adds r0, r0, #4");
         asm!( "LDR r14, [r0]");
@@ -419,7 +419,7 @@ fn delete_pg(page: u32){
     unsafe{
     let mut dp = Peripherals::steal();
     let mut flash= &mut dp.FLASH;
-    unlock(& mut flash); 
+    unlock(&mut flash); 
     wait_ready(&flash);
     erase_page(&mut flash,  page);
     }
@@ -431,24 +431,26 @@ fn delete_all_pg(){
         let mut flash= &mut dp.FLASH;
         for i in 0..25{
             let page = start_address + i * 2*1024;
-            unlock(& mut flash); 
+            unlock(&mut flash); 
             wait_ready(&flash);
             erase_page(&mut flash,  page);
         }
+       // drop(flash);
     }
+
 }
 
 #[entry]
 fn main() -> ! {
 
-    // delete_all_pg();
+     //delete_all_pg();
    //delete_pg(0x0803_0000 as u32); 
     // Get the peripheral access
     unsafe{
     let dp = Peripherals::steal(); //take().unwrap();
 
     // Enable the clock for GPIOA and SYSCFG
-    dp.RCC.ahbenr.modify(|_, w| w.iopaen().set_bit());
+    dp.RCC.ahbenr.modify(|_, w| w.iopden().set_bit());
     dp.RCC.apb2enr.modify(|_, w| w.syscfgen().set_bit());
 
     // Configure PA0 as input
@@ -467,25 +469,25 @@ fn main() -> ! {
 
     restore();
 
-    let a = Volatile::new(10);
-    let b = Volatile::new(20);
-    let mut d; 
-    let mut e; 
-    let mut f;
-    let mut g ;
-    let mut c;
+    // let a = Volatile::new(10);
+    // let b = Volatile::new(20);
+    // let mut d; 
+    // let mut e; 
+    // let mut f;
+    // let mut g ;
+    // let mut c;
     loop {
         // your code goes here
-        c = a.read() + b.read();
-        hprintln!("After c").unwrap();
-        d = c + a.read();
-        hprintln!("After d").unwrap();
-        e = c + d;
-        hprintln!("After e").unwrap();
-        f = e + c;
-        hprintln!("After f").unwrap();
-        g = c + f;
-        hprintln!("After g").unwrap();
+    //     c = a.read() + b.read();
+    //     hprintln!("After c").unwrap();
+    //     d = c + a.read();
+    //     hprintln!("After d").unwrap();
+    //     e = c + d;
+    //     hprintln!("After e").unwrap();
+    //     f = e + c;
+    //     hprintln!("After f").unwrap();
+    //     g = c + f;
+    //     hprintln!("After g").unwrap();
     }
 
     
@@ -495,24 +497,24 @@ fn main() -> ! {
 #[interrupt]
 fn EXTI0() {
     // Clear the interrupt pending bit
-    let lr: u32;
-    unsafe {
-        asm!(
-            "mov {}, lr",
-            out(reg) lr
-        );
-    }
-    hprintln!("LR value: {:#010x}", lr).unwrap();
+    // let lr: u32;
+    // unsafe {
+    //     asm!(
+    //         "mov {}, lr",
+    //         out(reg) lr
+    //     );
+    // }
+    // hprintln!("LR value: {:#010x}", lr).unwrap();
 
     unsafe{
         let peripherals = Peripherals::steal();
         peripherals.EXTI.pr1.modify(|_, w| w.pr0().set_bit());
     }
     hprintln!("Interrupt happened").unwrap();
-    checkpoint(lr);
+    checkpoint();
     hprintln!("Checkpoint taken").unwrap();
-    let a = 10 + 2;
-    let b = a + 10;
+    // let a = 10 + 2;
+    // let b = a + 10;
     //reset_mcu();
     // Your interrupt handling code here
 }
