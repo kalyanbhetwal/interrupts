@@ -410,7 +410,20 @@ fn restore()->bool{
         asm!( "LDR r14, [r0]");
 
         asm!("POP {{r0}}");
-        asm!("mov r15, r14");
+        
+        asm!("adds sp, sp, #56");
+        asm!("adds sp, sp, #16");
+
+        // asm!("POP {{r0, r1, r2, r3, r12, lr}}");
+        // asm!("LDMIA sp!, {{pc, xPSR}}");
+
+        asm!("POP {{r0, r1, r2, r3}}");
+        asm!("POP {{r4, r5, r6, r7}}");
+        asm!("MSR xPSR, r7");
+        asm!("mov pc, r6");    // pc is r15
+        //asm!("mov r15, r14"); // I am writing my own function to handle interrupt 
+
+
     }
     return true;
 }
@@ -443,7 +456,7 @@ fn delete_all_pg(){
 #[entry]
 fn main() -> ! {
 
-     //delete_all_pg();
+    //delete_all_pg();
    //delete_pg(0x0803_0000 as u32); 
     // Get the peripheral access
     unsafe{
@@ -455,6 +468,8 @@ fn main() -> ! {
 
     // Configure PA0 as input
     dp.GPIOA.moder.modify(|_, w| w.moder0().input());
+    dp.GPIOA.pupdr.modify(|_, w| w.pupdr0().pull_up());
+
     dp.SYSCFG.exticr1.modify(|_, w| w.exti0().pa0());
 
     // Configure EXTI0 for falling edge trigger and enable it
@@ -465,7 +480,7 @@ fn main() -> ! {
     unsafe { NVIC::unmask(Interrupt::EXTI0) };
 
     // Enable interrupts globally
-    unsafe { cortex_m::peripheral::NVIC::unmask(Interrupt::EXTI0) };
+    // unsafe { cortex_m::peripheral::NVIC::unmask(Interrupt::EXTI0) };
 
     restore();
 
@@ -510,9 +525,9 @@ fn EXTI0() {
         let peripherals = Peripherals::steal();
         peripherals.EXTI.pr1.modify(|_, w| w.pr0().set_bit());
     }
-    hprintln!("Interrupt happened").unwrap();
+   // hprintln!("Interrupt happened").unwrap();
     checkpoint();
-    hprintln!("Checkpoint taken").unwrap();
+   //hprintln!("Checkpoint taken").unwrap();
     // let a = 10 + 2;
     // let b = a + 10;
     //reset_mcu();
