@@ -6,6 +6,7 @@ MEMORY
   /* These values correspond to the LM3S6965, one of the few devices QEMU can emulate */
   FLASH : ORIGIN = 0x08000000, LENGTH = 512K
   RAM : ORIGIN = 0x20000000, LENGTH = 64K
+  FRAM : ORIGIN = 0x60000000, LENGTH = 32K
 }
 
 /* This is where the call stack will be allocated. */
@@ -33,6 +34,13 @@ MEMORY
      } > RAM2
    } INSERT AFTER .bss;
 */
+
+SECTIONS{
+    .fram_section :
+    {
+        *(.fram_section*)  /* Place variables marked with .fram_section attribute here */
+    } > FRAM
+}
 
 /* Define the stack section */
 _estack = ORIGIN(RAM) + LENGTH(RAM);

@@ -1,18 +1,11 @@
 #![allow(unsafe_code, unused, non_upper_case_globals)]
-#![no_main]
-#![no_std]
 use core::mem;
 use core::ptr;
 use cortex_m::asm::{nop, self};
 use panic_halt as _;
 
-use cortex_m_rt::entry;
-use::core::arch::asm;
 use cortex_m_semihosting::{debug, hprintln};
-use stm32f3xx_hal_v2::{self as hal, pac, prelude::*,flash::ACR, pac::Peripherals, pac::FLASH};
-
-use volatile::Volatile;
-use stm32f3xx_hal_v2::hal::blocking::rng::Read;
+use stm32f3xx_hal_v2::pac::FLASH;
 
 const UNLOCK_KEY1: u32 = 0x4567_0123;
 const UNLOCK_KEY2: u32 = 0xCDEF_89AB;
