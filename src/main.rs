@@ -463,7 +463,7 @@ fn main() -> ! {
     let dp = Peripherals::steal(); //take().unwrap();
 
     // Enable the clock for GPIOA and SYSCFG
-    dp.RCC.ahbenr.modify(|_, w| w.iopden().set_bit());
+    dp.RCC.ahbenr.modify(|_, w| w.iopaen().set_bit());
     dp.RCC.apb2enr.modify(|_, w| w.syscfgen().set_bit());
 
     // Configure PA0 as input
@@ -484,27 +484,30 @@ fn main() -> ! {
 
     restore();
 
-    // let a = Volatile::new(10);
-    // let b = Volatile::new(20);
-    // let mut d; 
-    // let mut e; 
-    // let mut f;
-    // let mut g ;
-    // let mut c;
+    let a = Volatile::new(10);
+    let b = Volatile::new(20);
+    let mut d; 
+    let mut e; 
+    let mut f;
+    let mut g ;
+    let mut c;
     loop {
         // your code goes here
-    //     c = a.read() + b.read();
-    //     hprintln!("After c").unwrap();
-    //     d = c + a.read();
-    //     hprintln!("After d").unwrap();
-    //     e = c + d;
-    //     hprintln!("After e").unwrap();
-    //     f = e + c;
-    //     hprintln!("After f").unwrap();
-    //     g = c + f;
-    //     hprintln!("After g").unwrap();
-    }
+        c = a.read() + b.read();
+        hprintln!("After c").unwrap();
+        d = c + a.read();
+        hprintln!("After d").unwrap();
+        delay_nop(500_000);
+        e = c + d;
+        hprintln!("After e").unwrap();
+        delay_nop(500_000);
+        f = e + c;
+        hprintln!("After f").unwrap();
+        g = c + f;
+        hprintln!("After g").unwrap();
+        delay_nop(500_000);
 
+    }
     
 }
 
@@ -539,4 +542,10 @@ fn reset_mcu() -> ! {
     // Perform a software reset
     hprintln!("reset mcu").unwrap();
     SCB::sys_reset();
+}
+#[no_mangle]
+fn delay_nop(count: u32) {
+    for _ in 0..count {
+        nop();
+    }
 }
